@@ -1,3 +1,9 @@
+const fs = require("fs");
+if (fs.existsSync("auth")) {
+    fs.rmSync("auth", { recursive: true, force: true });
+    console.log("🗑️ Deleted old auth folder");
+}
+
 console.log("🚀 DMS → WMS Bot Starting...");
 
 const {
