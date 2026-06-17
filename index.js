@@ -1,8 +1,3 @@
-if (fs.existsSync("auth")) {
-    fs.rmSync("auth", { recursive: true, force: true });
-    console.log("🗑️ Deleted old auth folder");
-}
-
 console.log("🚀 DMS → WMS Bot Starting...");
 
 const {
@@ -14,6 +9,13 @@ const {
 const axios = require("axios");
 const fs = require("fs");
 const cron = require("node-cron");
+
+// One-time cleanup: delete stale auth folder so pairing starts fresh.
+// Remove this block once you've successfully paired and want auth to persist across restarts.
+if (fs.existsSync("auth")) {
+    fs.rmSync("auth", { recursive: true, force: true });
+    console.log("🗑️ Deleted old auth folder");
+}
 
 let sock;
 let schedulerStarted = false;
