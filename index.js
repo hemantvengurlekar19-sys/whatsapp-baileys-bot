@@ -6,7 +6,6 @@ const {
     DisconnectReason
 } = require("@whiskeysockets/baileys");
 
-const qrcode = require("qrcode-terminal");
 const axios = require("axios");
 const fs = require("fs");
 const cron = require("node-cron");
@@ -14,6 +13,9 @@ const cron = require("node-cron");
 let sock;
 let schedulerStarted = false;
 let groupId = null;
+
+// Phone number for pairing code login, e.g. "919876543210" (no + or spaces)
+const PHONE_NUMBER = process.env.PAIRING_PHONE_NUMBER;
 
 // ========================
 // 📊 MESSAGE
@@ -37,8 +39,8 @@ Warehouses that have not yet shared their Sales Order data are requested to do s
 
 We request all concerned warehouses to take note of the pending orders. These are primarily due to stock issues or merchant-related errors:
 
-• Merchant Errors: Please share the correct details for the affected orders.
-• Insufficient Stock: Kindly raise GRNs against the respective Purchase Orders.
+- Merchant Errors: Please share the correct details for the affected orders.
+- Insufficient Stock: Kindly raise GRNs against the respective Purchase Orders.
 
 We request that the necessary actions be completed and updates shared via email or the group at the earliest. This will help us process the remaining orders and ensure timely closure for the month.
 
@@ -161,20 +163,31 @@ async function startBot() {
 
     sock.ev.on("creds.update", saveCreds);
 
+    // Request a pairing code instead of scanning a QR.
+    // Only do this if we're not already registered and a phone number was provided.
+    if (!sock.authState.creds.registered) {
+        if (!PHONE_NUMBER) {
+            console.log("❌ PAIRING_PHONE_NUMBER env var not set. Set it (e.g. 919876543210) and redeploy.");
+        } else {
+            // Small delay helps avoid requesting before the socket is fully ready
+            setTimeout(async () => {
+                try {
+                    const code = await sock.requestPairingCode(PHONE_NUMBER);
+                    console.log("\n🔑 Pairing Code:", code);
+                    console.log("📱 Open WhatsApp → Linked Devices → Link with phone number → enter this code.\n");
+                } catch (err) {
+                    console.error("❌ Failed to request pairing code:", err.message);
+                }
+            }, 3000);
+        }
+    }
+
     sock.ev.on("connection.update", async (update) => {
 
         const {
             connection,
-            lastDisconnect,
-            qr
+            lastDisconnect
         } = update;
-
-        if (qr) {
-            console.log("\n📱 Scan QR Code:\n");
-            qrcode.generate(qr, {
-                small: true
-            });
-        }
 
         if (connection === "open") {
 
