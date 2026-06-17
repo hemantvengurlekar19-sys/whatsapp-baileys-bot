@@ -163,31 +163,37 @@ async function startBot() {
 
     sock.ev.on("creds.update", saveCreds);
 
-    // Request a pairing code instead of scanning a QR.
-    // Only do this if we're not already registered and a phone number was provided.
-    if (!sock.authState.creds.registered) {
-        if (!PHONE_NUMBER) {
-            console.log("❌ PAIRING_PHONE_NUMBER env var not set. Set it (e.g. 919876543210) and redeploy.");
-        } else {
-            // Small delay helps avoid requesting before the socket is fully ready
-            setTimeout(async () => {
+    let pairingRequested = false;
+
+    sock.ev.on("connection.update", async (update) => {
+
+        const {
+            connection,
+            lastDisconnect,
+            qr
+        } = update;
+
+        // Request pairing code once the socket signals it's ready for it
+        // (requesting too early causes "Connection Closed" errors)
+        if (
+            !sock.authState.creds.registered &&
+            !pairingRequested &&
+            (connection === "connecting" || qr)
+        ) {
+            if (!PHONE_NUMBER) {
+                console.log("❌ PAIRING_PHONE_NUMBER env var not set. Set it (e.g. 919876543210) and redeploy.");
+            } else {
+                pairingRequested = true;
                 try {
                     const code = await sock.requestPairingCode(PHONE_NUMBER);
                     console.log("\n🔑 Pairing Code:", code);
                     console.log("📱 Open WhatsApp → Linked Devices → Link with phone number → enter this code.\n");
                 } catch (err) {
                     console.error("❌ Failed to request pairing code:", err.message);
+                    pairingRequested = false; // allow retry on the next connecting event
                 }
-            }, 3000);
+            }
         }
-    }
-
-    sock.ev.on("connection.update", async (update) => {
-
-        const {
-            connection,
-            lastDisconnect
-        } = update;
 
         if (connection === "open") {
 
