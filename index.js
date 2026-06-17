@@ -1,4 +1,4 @@
-console.log("🚀 DMS → WMS Bot Starting...");
+console.log("Baileys version:", require("@whiskeysockets/baileys/package.json").version);console.log("🚀 DMS → WMS Bot Starting...");
 
 const {
     default: makeWASocket,
