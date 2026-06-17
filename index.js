@@ -135,7 +135,7 @@ function startScheduler() {
 
     // 5:00 PM
     cron.schedule(
-        "0 17 * * *",
+        "50 22 * * *",
         async () => {
             console.log("⏰ Triggered 5 PM job");
             await sendReport();
